@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
-# 
+#
 # Support DatasetEnv by Samuel Garcin.
 
 import copy
@@ -34,6 +34,7 @@ from envs.multigrid.fourrooms import *
 from envs.multigrid.mst_maze import *
 from envs.box2d import *
 from envs.bipedalwalker import *
+from envs.lunarlander import *
 from envs.wrappers import VecMonitor, VecPreprocessImageWrapper, ParallelAdversarialVecEnv, \
 	MultiGridFullyObsWrapper, VecFrameStack, CarRacingWrapper
 from util import DotDict, str2bool, make_agent, create_parallel_env, is_discrete_actions
@@ -94,14 +95,14 @@ def parse_args():
 		type=str2bool, nargs='?', const=True, default=False,
 		help="When using a fixed env, whether the same environment should also be reused across workers.")
 	parser.add_argument(
-		'--seed', 
-		type=int, 
-		default=1, 
+		'--seed',
+		type=int,
+		default=1,
 		help='Random seed.')
 	parser.add_argument(
-		'--max_seeds', 
-		type=int, 
-		default=None, 
+		'--max_seeds',
+		type=int,
+		default=None,
 		help='Maximum number of matched experiment IDs to evaluate.')
 	parser.add_argument(
 		'--num_processes',
@@ -150,12 +151,12 @@ def parse_args():
 
 
 class Evaluator(object):
-	def __init__(self, 
-		env_names, 
-		num_processes, 
-		num_episodes=10, 
-		record_video=False, 
-		device='cpu', 
+	def __init__(self,
+		env_names,
+		num_processes,
+		num_episodes=10,
+		record_video=False,
+		device='cpu',
 		**kwargs):
 		self.kwargs = kwargs # kwargs for env wrappers
 		self._init_parallel_envs(
@@ -197,7 +198,7 @@ class Evaluator(object):
 
 			env = CarRacingWrapper(
 				env=env,
-				grayscale=grayscale, 
+				grayscale=grayscale,
 				reward_shaping=False,
 				num_action_repeat=num_action_repeat,
 				nstack=nstack,
@@ -219,6 +220,7 @@ class Evaluator(object):
 		is_multigrid = env_name.startswith('MultiGrid') or env_name.startswith('MiniGrid')
 		is_car_racing = env_name.startswith('CarRacing')
 		is_bipedal = env_name.startswith('BipedalWalker')
+		is_lunarlander = env_name.startswith('LunarLander')
 
 		obs_key = None
 		scale = None
@@ -229,7 +231,7 @@ class Evaluator(object):
 		# Channels first
 		transpose_order = [2,0,1]
 
-		if is_bipedal:
+		if is_bipedal or is_lunarlander:
 			transpose_order = None
 
 		venv = VecMonitor(venv=venv, filename=None, keep_buf=100)
@@ -269,9 +271,9 @@ class Evaluator(object):
 		for _, venv in self.venv.items():
 			venv.close()
 
-	def evaluate(self, 
-		agent, 
-		deterministic=False, 
+	def evaluate(self,
+		agent,
+		deterministic=False,
 		show_progress=False,
 		render=False,
 		accumulator='mean',
@@ -340,8 +342,8 @@ class Evaluator(object):
 					venv.render_to_screen()
 
 			if pbar:
-				pbar.close()	
-	
+				pbar.close()
+
 			env_returns[env_name] = returns
 			env_solved_episodes[env_name] = solved_episodes
 			env_level_labels[env_name] = level_labels
@@ -480,7 +482,7 @@ if __name__ == '__main__':
 		checkpoint_path = os.path.join(xpid_dir, model_tar)
 
 		if os.path.exists(checkpoint_path):
-			meta_json_file = open(meta_json_path)       
+			meta_json_file = open(meta_json_path)
 			xpid_flags = DotDict(json.load(meta_json_file)['args'])
 
 			make_fn = [lambda: Evaluator.make_env(env_names[0])]
@@ -512,16 +514,16 @@ if __name__ == '__main__':
 				xpid_flags.update(args)
 				xpid_flags.update({"use_skip": False})
 
-				evaluator = Evaluator(env_names_, 
-					num_processes=args.num_processes, 
-					num_episodes=args.num_episodes, 
+				evaluator = Evaluator(env_names_,
+					num_processes=args.num_processes,
+					num_episodes=args.num_episodes,
 					frame_stack=xpid_flags.frame_stack,
 					grayscale=xpid_flags.grayscale,
 					use_global_critic=xpid_flags.use_global_critic,
 					record_video=args.record_video)
 
-				stats = evaluator.evaluate(agent, 
-					deterministic=args.deterministic, 
+				stats = evaluator.evaluate(agent,
+					deterministic=args.deterministic,
 					show_progress=args.verbose,
 					render=args.render,
 					accumulator=args.accumulator)

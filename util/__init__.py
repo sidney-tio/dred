@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
-# 
+#
 # Following modifications by Samuel Garcin:
 # - implemented make_level_generator_args(), get_node_features(), dgl_to_nx(), nx_to_dgl((), interpolate_between_pairs(), lerp(), slerp()
 # - support for mixed sampling strategies in make_plr_args(), minor improvements to DotDict(), save_images()
@@ -350,11 +350,11 @@ def _make_env(args):
         reward_shaping = args.reward_shaping and not args.sparse_rewards
         assert max_episode_steps % args.num_action_repeat == 0
         return TimeLimit(CarRacingWrapper(env,
-                grayscale=args.grayscale, 
+                grayscale=args.grayscale,
                 reward_shaping=reward_shaping,
                 num_action_repeat=args.num_action_repeat,
                 nstack=args.frame_stack,
-                crop=args.crop_frame), 
+                crop=args.crop_frame),
             max_episode_steps=max_episode_steps//args.num_action_repeat)
     elif args.env_name.startswith('MultiGrid'):
         env = gym_make(args.env_name, **env_kwargs)
@@ -363,6 +363,10 @@ def _make_env(args):
             env = TimeLimit(MultiGridFullyObsWrapper(env),
                 max_episode_steps=max_episode_steps)
         return env
+
+    if args.env_name.startswith('LunarLander'):
+        env = gym_make(args.env_name, **env_kwargs)
+        return TimeLimit(env, max_episode_steps=500)
     else:
         return gym_make(args.env_name, **env_kwargs)
 
@@ -371,6 +375,7 @@ def create_parallel_env(args, adversary=True):
     is_multigrid = args.env_name.startswith('MultiGrid')
     is_car_racing = args.env_name.startswith('CarRacing')
     is_bipedalwalker = args.env_name.startswith('BipedalWalker')
+    is_lunarlander = args.env_name.startswith('LunarLander')
 
     make_fn = lambda: _make_env(args)
 
@@ -388,13 +393,13 @@ def create_parallel_env(args, adversary=True):
     if is_car_racing:
         ued_venv = VecPreprocessImageWrapper(venv=venv) # move to tensor
 
-    if is_bipedalwalker:
+    if is_bipedalwalker or is_lunarlander:
         transpose_order = None
 
     venv = VecPreprocessImageWrapper(venv=venv, obs_key=obs_key,
             transpose_order=transpose_order, scale=scale)
 
-    if is_multigrid or is_bipedalwalker:
+    if is_multigrid or is_bipedalwalker or is_lunarlander:
         ued_venv = venv
 
     if args.singleton_env:
@@ -407,17 +412,17 @@ def create_parallel_env(args, adversary=True):
 
 
 def is_dense_reward_env(env_name):
-    if env_name.startswith('CarRacing'):
+    if env_name.startswith('CarRacing') or env_name.startswith('LunarLander'):
         return True
     else:
         return False
 
 
 def make_plr_args(args, obs_space, action_space):
-    return dict( 
+    return dict(
         seeds=[],
-        obs_space=obs_space, 
-        action_space=action_space, 
+        obs_space=obs_space,
+        action_space=action_space,
         num_actors=args.num_processes,
         strategy=args.level_replay_strategy,
         strategy_support=args.level_replay_strategy_support,

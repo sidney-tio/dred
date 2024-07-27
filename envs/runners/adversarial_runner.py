@@ -180,7 +180,8 @@ class AdversarialRunner(object):
         env_name = self.args.env_name
         if self.args.use_editor \
            or env_name.startswith('BipedalWalker') \
-           or (env_name.startswith('MultiGrid') and (self.args.use_reset_random_dr or self.args.use_dataset)):
+           or (env_name.startswith('MultiGrid') and (self.args.use_reset_random_dr or self.args.use_dataset)) \
+           or env_name.startswith('LunarLander'):
             return True
         else:
             return False
@@ -398,6 +399,21 @@ class AdversarialRunner(object):
 
         return stats
 
+    def _get_env_stats_lunarlander(self, agent_info, adversary_agent_info):
+        infos = self.venv.get_complexity_info()
+        num_envs = len(infos)
+
+        sums = defaultdict(float)
+        for info in infos:
+            for k,v in info.items():
+                sums[k] += v
+
+        stats = {}
+        for k,v in sums.items():
+            stats['track_' + k] = sums[k]/num_envs
+
+        return stats
+
     def _get_env_stats(self, agent_info, adversary_agent_info, log_replay_complexity=False):
         env_name = self.args.env_name
         if env_name.startswith('MultiGrid'):
@@ -406,6 +422,8 @@ class AdversarialRunner(object):
             stats = self._get_env_stats_car_racing(agent_info, adversary_agent_info)
         elif env_name.startswith('BipedalWalker'):
             stats = self._get_env_stats_bipedalwalker(agent_info, adversary_agent_info)
+        elif env_name.startswith('LunarLander'):
+            stats = self._get_env_stats_lunarlander(agent_info, adversary_agent_info)
         else:
             raise ValueError(f'Unsupported environment, {self.args.env_name}')
 

@@ -10,7 +10,9 @@ from models import \
     CarRacingNetwork, \
     CarRacingBezierAdversaryEnvNetwork, \
     BipedalWalkerStudentPolicy, \
-    BipedalWalkerAdversaryPolicy
+    BipedalWalkerAdversaryPolicy, \
+    LunarLanderStudentPolicy, \
+    LunarLanderAdversaryPolicy
 
 def model_for_multigrid_agent(
     env,
@@ -26,7 +28,7 @@ def model_for_multigrid_agent(
         adversary_random_z_dim = adversary_observation_space['random_z'].shape[0]
 
         model = MultigridNetwork(
-            observation_space=adversary_observation_space, 
+            observation_space=adversary_observation_space,
             action_space=adversary_action_space,
             conv_filters=128,
             scalar_fc=10,
@@ -37,9 +39,9 @@ def model_for_multigrid_agent(
     else:
         observation_space = env.observation_space
         action_space = env.action_space
-        num_directions = observation_space['direction'].high[0] + 1 
+        num_directions = observation_space['direction'].high[0] + 1
         model_kwargs = dict(
-            observation_space=observation_space, 
+            observation_space=observation_space,
             action_space=action_space,
             scalar_fc=5,
             scalar_dim=num_directions,
@@ -86,7 +88,7 @@ def model_for_car_racing_agent(
             obs_shape=obs_shape,
             action_space = action_space,
             hidden_size=100,
-            use_popart=use_popart) 
+            use_popart=use_popart)
 
     return model
 
@@ -110,6 +112,26 @@ def model_for_bipedalwalker_agent(
 
     return model
 
+def model_for_lunarlander_agent(
+    env,
+    agent_type='agent',
+    recurrent_arch=False):
+    if 'adversary_env' in agent_type:
+        adversary_observation_space = env.adversary_observation_space
+        adversary_action_space = env.adversary_action_space
+
+        model = LunarLanderAdversaryPolicy(
+                observation_space=adversary_observation_space,
+                action_space=adversary_action_space)
+
+    else:
+        model = LunarLanderStudentPolicy(
+            obs_shape=env.observation_space.shape,
+            action_space=env.action_space,
+            recurrent=recurrent_arch)
+
+    return model
+
 def model_for_env_agent(
     env_name,
     env,
@@ -126,10 +148,10 @@ def model_for_env_agent(
     use_goal=False,
     num_goal_bins=1):
     assert agent_type in ['agent', 'adversary_agent', 'adversary_env']
-        
+
     if env_name.startswith('MultiGrid'):
         model = model_for_multigrid_agent(
-            env=env, 
+            env=env,
             agent_type=agent_type,
             recurrent_arch=recurrent_arch,
             recurrent_hidden_size=recurrent_hidden_size,
@@ -137,7 +159,7 @@ def model_for_env_agent(
             use_global_policy=use_global_policy)
     elif env_name.startswith('CarRacing'):
         model = model_for_car_racing_agent(
-            env=env, 
+            env=env,
             agent_type=agent_type,
             use_skip=use_skip,
             choose_start_pos=choose_start_pos,
@@ -151,6 +173,12 @@ def model_for_env_agent(
             env=env,
             agent_type=agent_type,
             recurrent_arch=recurrent_arch)
+    elif env_name.startswith('LunarLander'):
+        model = model_for_lunarlander_agent(
+            env=env,
+            agent_type=agent_type,
+            recurrent_arch=recurrent_arch
+        )
     else:
         raise ValueError(f'Unsupported environment {env_name}.')
 
@@ -185,7 +213,7 @@ def make_agent(name, env, args, device='cpu'):
     recurrent_hidden_size = args.recurrent_hidden_size
 
     actor_critic = model_for_env_agent(
-        args.env_name, env, name, 
+        args.env_name, env, name,
         recurrent_arch=recurrent_arch,
         recurrent_hidden_size=recurrent_hidden_size,
         use_global_critic=args.use_global_critic,

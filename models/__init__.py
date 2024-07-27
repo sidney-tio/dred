@@ -9,3 +9,4 @@ from .multigrid_global_critic_models import MultigridGlobalCriticNetwork
 from .car_racing_models import CarRacingNetwork, CarRacingBezierAdversaryEnvNetwork
 from .walker_models import BipedalWalkerStudentPolicy, BipedalWalkerAdversaryPolicy
 from .dred_minigrid import GraphVAE
+from .lunarlander_models import LunarLanderAdversaryPolicy, LunarLanderStudentPolicy

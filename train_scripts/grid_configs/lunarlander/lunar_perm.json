@@ -1,0 +1,75 @@
+{
+	"grid" :{
+		"env_name":[
+			"LunarLander-PERM-v0"
+		],
+
+	  "ued_algo": ["perm"],
+	  "num_processes": [16],
+	  "num_env_steps": [1000000],
+	  "num_steps": [1025],
+	  "ppo_epoch": [4],
+	  "num_mini_batch":[32],
+	  "normalize_returns": [true],
+
+	  "checkpoint_basis":["student_grad_updates"],
+	  "archive_interval": [5000],
+
+	  "recurrent_agent": [false],
+	  "recurrent_adversary_env": [false],
+	  "recurrent_hidden_size": [1],
+
+	  "lr": [3e-4],
+	  "max_grad_norm": [0.5],
+	  "gamma": [0.99],
+	  "gae_lambda": [0.98],
+	  "value_loss_coef": [0.5],
+	  "entropy_coef": [0.01],
+	  "adv_entropy_coef": [0.01],
+	  "clip_value_loss": [false],
+	  "clip_param": [0.2],
+	  "reward_shaping": [true],
+	  "use_categorical_adv": [true],
+	  "use_skip": [false],
+	  "choose_start_pos": [false],
+	  "sparse_rewards":[false],
+	  "handle_timelimits": [true],
+
+	  "adv_max_grad_norm": [0.5],
+	  "adv_ppo_epoch": [8],
+	  "adv_num_mini_batch": [4],
+	  "adv_normalize_returns": [true],
+	  "adv_use_popart": [false],
+
+		"use_plr": [false],
+		"level_replay_strategy":["positive_value_loss"],
+		"level_replay_score_transform":["rank"],
+		"level_replay_prob": [0.0],
+		"level_replay_rho":[0.5],
+		"level_replay_seed_buffer_size":[1000],
+		"staleness_coef": [0.5],
+		"no_exploratory_grad_updates": [true],
+
+	  "test_env_names": ["LunarLander-Eval-One-v0,LunarLander-Eval-Two-v0,LunarLander-Eval-Three-v0,LunarLander-Eval-Four-v0,LunarLander-Eval-Five-v0,LunarLander-Eval-Six-v0,LunarLander-Eval-Seven-v0,LunarLander-Eval-Eight-v0,LunarLander-Eval-Nine-v0,LunarLander-Eval-Ten-v0"],
+
+		"item_feat_dim":[1],
+		"ability_dim":[1],
+		"response_dim":[1],
+		"hidden_dims":[64],
+		"output_scale":[0.01],
+		"model_dir":["~/dcd/teachDeepRL/teachers/algos/perm_models/lunarlander"],
+
+	  "log_dir": ["~/dcd-logs/perm"],
+	  "log_interval": [2],
+	  "test_interval": [2],
+	  "test_num_episodes":[3],
+	  "test_num_processes":[2],
+	  "screenshot_interval":[0],
+	  "log_plr_buffer_stats": [true],
+	  "log_replay_complexity": [true],
+	  "checkpoint":[true],
+
+    "log_action_complexity": [false],
+    "log_grad_norm": [true]
+	}
+}
