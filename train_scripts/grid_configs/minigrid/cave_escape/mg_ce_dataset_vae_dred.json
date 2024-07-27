@@ -5,7 +5,7 @@
     ],
 
     "ued_algo": ["dred"],
-    "num_processes": [36],
+    "num_processes": [24],
     "num_env_steps": [265000000],
     "num_steps": [256],
     "ppo_epoch": [5],
@@ -55,6 +55,7 @@
     "include_endpoints_in_interpolation": [true],
 
     "test_env_names": ["MultiGrid-DatasetEnv-v0"],
+    "test_num_episodes": [2],
     "dataset_path": ["datasets/cave_escape_512_4ts_varp"],
 
     "log_dir": ["~/dcd_logs/vae_dred"],

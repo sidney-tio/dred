@@ -3,12 +3,13 @@
 #
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
-# 
+#
 # Following modifications by Samuel Garcin:
 # - DRED training pipeline
 # - initialization and/or restriction of buffer to dataset of levels
 # - minor modifications and fixes
 
+import csv
 import os
 from collections import deque, defaultdict
 
@@ -29,10 +30,23 @@ from teachDeepRL.teachers.teacher_controller import TeacherController
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 
+def _to_csv(info):
+    filename = os.path.join('logs','minigrid_info.csv')
+    header = ['grid','return']
+    file_exists = os.path.isfile(filename)
+
+    with open(filename, 'a', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        # If file doesn't exist or is empty, write the header
+        if not file_exists or os.stat(filename).st_size == 0:
+            writer.writerow(header)
+        # Write the data tuple
+        for data in info:
+            writer.writerow(data)
 
 class AdversarialRunner(object):
     """
-    Performs rollouts of an adversarial environment, given 
+    Performs rollouts of an adversarial environment, given
     protagonist (agent), antogonist (adversary_agent), and
     environment adversary (advesary_env)
     """
@@ -85,7 +99,7 @@ class AdversarialRunner(object):
         self.is_dataset_only = args.ued_algo == 'off' and args.use_dataset
         self.requires_batched_vloss = args.use_editor and args.base_levels == 'easy'
 
-        self.is_alp_gmm = args.ued_algo == 'alp_gmm' 
+        self.is_alp_gmm = args.ued_algo == 'alp_gmm'
 
         # Track running mean and std of env returns for return normalization
         if args.adv_normalize_returns:
@@ -269,8 +283,8 @@ class AdversarialRunner(object):
 
     def _get_batched_value_loss(self, agent, clipped=True, batched=True):
         batched_value_loss = agent.storage.get_batched_value_loss(
-            signed=False, 
-            positive_only=False, 
+            signed=False,
+            positive_only=False,
             clipped=clipped,
             batched=batched)
 
@@ -287,12 +301,18 @@ class AdversarialRunner(object):
         stats = {
             'mean_return': mean_return,
             'max_return': max_return,
-            'returns': rollout_returns 
+            'returns': rollout_returns
         }
 
         return stats
 
     def _get_env_stats_multigrid(self, agent_info, adversary_agent_info):
+        grids = self.venv.get_grid()
+        grids = [g[0] for g in grids]
+        returns = [r[0] for r in agent_info['returns']]
+        info = zip(grids,returns)
+        _to_csv(info)
+
         num_blocks = np.mean(agent_info.get(
             'num_blocks', self.venv.get_num_blocks()))
 
@@ -342,7 +362,7 @@ class AdversarialRunner(object):
         stats = {}
         for k,sampler in self.level_samplers.items():
             stats[k + '_plr_passable_mass'] = sampler.solvable_mass
-            stats[k + '_plr_max_score'] = sampler.max_score 
+            stats[k + '_plr_max_score'] = sampler.max_score
             stats[k + '_plr_weighted_num_edits'] = self.weighted_num_edits
             stats[k + '_plr_dataset_mass'] = sampler.dataset_mass
 
@@ -393,7 +413,7 @@ class AdversarialRunner(object):
         for k,v in stats.items():
             stats_['plr_' + k] = v if log_replay_complexity else None
             stats_[k] = v if not log_replay_complexity else None
-            
+
         return stats_
 
     def _get_active_levels(self):
@@ -517,17 +537,17 @@ class AdversarialRunner(object):
                          for i in range(len(latent_params_batch[0]))]
         return levels, latent_params, parent_seeds, labels
 
-    def agent_rollout(self, 
-                      agent, 
-                      num_steps, 
-                      update=False, 
-                      is_env=False, 
-                      level_replay=False, 
-                      level_sampler=None, 
+    def agent_rollout(self,
+                      agent,
+                      num_steps,
+                      update=False,
+                      is_env=False,
+                      level_replay=False,
+                      level_sampler=None,
                       update_level_sampler=False,
-                      discard_grad=False, 
+                      discard_grad=False,
                       edit_level=False,
-                      num_edits=0, 
+                      num_edits=0,
                       fixed_seeds=None):
         args = self.args
         if is_env:
@@ -555,7 +575,7 @@ class AdversarialRunner(object):
                 levels = [self.level_store.get_level(seed) for seed in self.current_level_seeds]
                 self.ued_venv.reset_to_level_batch(levels)
                 return self.current_level_seeds
-            elif self.is_dr and not args.use_plr: 
+            elif self.is_dr and not args.use_plr:
                 obs = self.ued_venv.reset_random() # don't need obs here
                 self.total_seeds_collected += args.num_processes
                 return
@@ -576,7 +596,7 @@ class AdversarialRunner(object):
 
         # Initialize first observation
         agent.storage.copy_obs_to_index(obs,0)
-        
+
         rollout_info = {}
         rollout_returns = [[] for _ in range(args.num_processes)]
 
@@ -584,7 +604,7 @@ class AdversarialRunner(object):
             rollout_info.update({
                 'solved_idx': np.zeros(args.num_processes, dtype=np.bool)
             })
-            
+
         for step in range(num_steps):
             if args.render:
                 self.venv.render_to_screen()
@@ -622,7 +642,7 @@ class AdversarialRunner(object):
 
             if level_sampler and level_replay:
                 next_level_seeds = [s for s in self.current_level_seeds]
-                
+
             for i, info in enumerate(infos):
                 if 'episode' in info.keys():
                     rollout_returns[i].append(info['episode']['r'])
@@ -669,9 +689,9 @@ class AdversarialRunner(object):
                 current_level_seeds = torch.tensor(self.current_level_seeds, dtype=torch.int).view(-1, 1)
 
             agent.insert(
-                obs, recurrent_hidden_states, 
-                action, action_log_prob, action_log_dist, 
-                value, reward, masks, bad_masks, 
+                obs, recurrent_hidden_states,
+                action, action_log_prob, action_log_dist,
+                value, reward, masks, bad_masks,
                 level_seeds=current_level_seeds,
                 cliffhanger_masks=cliffhanger_masks)
 
@@ -685,7 +705,7 @@ class AdversarialRunner(object):
         rollout_info.update(self._get_rollout_return_stats(rollout_returns))
 
         # Update non-env agent if required
-        if not is_env and update: 
+        if not is_env and update:
             with torch.no_grad():
                 obs_id = agent.storage.get_obs(-1)
                 next_value = agent.get_value(
@@ -739,7 +759,7 @@ class AdversarialRunner(object):
             env_return[adversary_agent_max_idx] = \
                 adversary_agent_info['max_return'][adversary_agent_max_idx]
             env_return[agent_max_idx] = agent_info['max_return'][agent_max_idx]
-            
+
             env_mean_return = torch.zeros_like(env_return, dtype=torch.float)
             env_mean_return[adversary_agent_max_idx] = \
                 agent_info['mean_return'][adversary_agent_max_idx]
@@ -761,7 +781,7 @@ class AdversarialRunner(object):
         if args.adv_clip_reward is not None:
             clip_max_abs = args.adv_clip_reward
             env_return = env_return.clamp(-clip_max_abs, clip_max_abs)
-        
+
         return env_return
 
     def run(self):
@@ -787,8 +807,8 @@ class AdversarialRunner(object):
 
         # Generate a batch of adversarial environments
         env_info = self.agent_rollout(
-            agent=adversary_env, 
-            num_steps=self.adversary_env_rollout_steps, 
+            agent=adversary_env,
+            num_steps=self.adversary_env_rollout_steps,
             update=False,
             is_env=True,
             level_replay=level_replay,
@@ -798,7 +818,7 @@ class AdversarialRunner(object):
         # Run agent episodes
         level_sampler, is_updateable = self._get_level_sampler('agent')
         agent_info = self.agent_rollout(
-            agent=agent, 
+            agent=agent,
             num_steps=self.agent_rollout_steps,
             update=self.is_training,
             level_replay=level_replay,
@@ -809,8 +829,8 @@ class AdversarialRunner(object):
         # Use a separate PLR curriculum for the antagonist
         if level_replay and self.is_paired and (args.protagonist_plr == args.antagonist_plr):
             self.agent_rollout(
-                agent=adversary_env, 
-                num_steps=self.adversary_env_rollout_steps, 
+                agent=adversary_env,
+                num_steps=self.adversary_env_rollout_steps,
                 update=False,
                 is_env=True,
                 level_replay=level_replay,
@@ -822,8 +842,8 @@ class AdversarialRunner(object):
             # Run adversary agent episodes
             level_sampler, is_updateable = self._get_level_sampler('adversary_agent')
             adversary_agent_info = self.agent_rollout(
-                agent=adversary_agent, 
-                num_steps=self.agent_rollout_steps, 
+                agent=adversary_agent,
+                num_steps=self.agent_rollout_steps,
                 update=self.is_training,
                 level_replay=level_replay,
                 level_sampler=level_sampler,
@@ -920,7 +940,7 @@ class AdversarialRunner(object):
         # Only update env-related stats when run generates new envs (not level replay)
         log_replay_complexity = level_replay and args.log_replay_complexity
         if (not level_replay) or log_replay_complexity:
-            stats = self._get_env_stats(agent_info, adversary_agent_info, 
+            stats = self._get_env_stats(agent_info, adversary_agent_info,
                 log_replay_complexity=log_replay_complexity)
             stats.update({
                 'mean_env_return': env_return.mean().item(),
@@ -984,7 +1004,7 @@ class AdversarialRunner(object):
         if args.log_action_complexity:
             stats.update({
                 'agent_action_complexity': agent_info['action_complexity'],
-                'adversary_action_complexity': adversary_agent_info['action_complexity']  
-            }) 
+                'adversary_action_complexity': adversary_agent_info['action_complexity']
+            })
 
         return stats

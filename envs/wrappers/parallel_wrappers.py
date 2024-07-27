@@ -8,7 +8,7 @@
 #
 # This file is a heavily modified version of
 # https://github.com/DLR-RM/stable-baselines3/blob/master/stable_baselines3/common/vec_env/subproc_vec_env.py
-# 
+#
 # Minor modifications by Samuel Garcin.
 
 import multiprocessing as mp
@@ -460,6 +460,14 @@ class ParallelAdversarialVecEnv(SubprocVecEnv):
     # === Multigrid-specific ===
     def get_num_blocks(self):
         return self.remote_attr('n_clutter_placed', flatten=True)
+
+    def get_grid(self):
+        self._assert_not_closed()
+        [remote.send(('get_grid', None)) for remote in self.remotes]
+        self.waiting = True
+        grids = [remote.recv() for remote in self.remotes]
+        self.waiting = False
+        return grids
 
     def __getattr__(self, name):
         if name == 'observation_space':

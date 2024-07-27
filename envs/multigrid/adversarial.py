@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-# 
+#
 # Support for Floor and Lava tiles and deterministic start states by Samuel Garcin
 
 # Lint as: python3
@@ -666,6 +666,10 @@ class AdversarialEnv(multigrid.MultiGridEnv):
     self.compute_metrics()
 
     return self.reset_agent()
+
+  def get_grid(self):
+    grid = [obj.encode()[0] if obj else 1 for obj in self.grid.grid]
+    return grid
 
 class CaveEscapeAdversarialEnv(AdversarialEnv):
 

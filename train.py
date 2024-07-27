@@ -3,7 +3,7 @@
 #
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
-# 
+#
 # DRED implementation by Samuel Garcin.
 
 import sys
@@ -21,19 +21,19 @@ from baselines.logger import HumanOutputFormat
 
 display = None
 
-if sys.platform.startswith('linux'):
-    print('Setting up virtual display')
+# if sys.platform.startswith('linux'):
+#     print('Setting up virtual display')
 
-    import pyvirtualdisplay
-    display = pyvirtualdisplay.Display(visible=0, size=(1400, 900), color_depth=24)
-    display.start()
+#     import pyvirtualdisplay
+#     display = pyvirtualdisplay.Display(visible=0, size=(1400, 900), color_depth=24)
+#     display.start()
 
 from envs.multigrid import *
 from envs.multigrid.adversarial import *
 from envs.multigrid.dataset import *
 from envs.box2d import *
 from envs.bipedalwalker import *
-from envs.runners.adversarial_runner import AdversarialRunner 
+from envs.runners.adversarial_runner import AdversarialRunner
 from util import make_agent, FileWriter, safe_checkpoint, create_parallel_env, make_plr_args, save_images
 from eval import Evaluator
 
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     os.environ["OMP_NUM_THREADS"] = "1"
 
     args = parser.parse_args()
-    
+
     # === Configure logging ==
     if args.xpid is None:
         args.xpid = "lr-%s" % time.strftime("%Y%m%d-%H%M%S")
@@ -127,8 +127,8 @@ if __name__ == '__main__':
     train_runner = AdversarialRunner(
         args=args,
         venv=venv,
-        agent=agent, 
-        ued_venv=ued_venv, 
+        agent=agent,
+        ued_venv=ued_venv,
         adversary_agent=adversary_agent,
         adversary_env=adversary_env,
         flexible_protagonist=False,
@@ -153,9 +153,9 @@ if __name__ == '__main__':
     def checkpoint(index=None):
         if args.disable_checkpoint:
             return
-        safe_checkpoint({'runner_state_dict': train_runner.state_dict()}, 
+        safe_checkpoint({'runner_state_dict': train_runner.state_dict()},
                         checkpoint_path,
-                        index=index, 
+                        index=index,
                         archive_interval=args.archive_interval)
         logging.info("Saved checkpoint to %s", checkpoint_path)
 
@@ -188,8 +188,8 @@ if __name__ == '__main__':
             test_levels = train_runner.dataset_sampler.test_levels
             test_labels = train_runner.dataset_sampler.test_labels
         evaluator = Evaluator(
-            args.test_env_names.split(','), 
-            num_processes=args.test_num_processes, 
+            args.test_env_names.split(','),
+            num_processes=args.test_num_processes,
             num_episodes=args.test_num_episodes,
             frame_stack=args.frame_stack,
             grayscale=args.grayscale,
@@ -200,7 +200,7 @@ if __name__ == '__main__':
             levels=test_levels,
             labels=test_labels,)
 
-    # === Train === 
+    # === Train ===
     last_checkpoint_idx = getattr(train_runner, args.checkpoint_basis)
     update_start_time = timer()
     num_updates = int(args.num_env_steps) // args.num_steps // args.num_processes
@@ -274,25 +274,25 @@ if __name__ == '__main__':
                 df = bipedalwalker_df_from_encodings(args.env_name, encodings)
                 if args.use_editor and level_info:
                     df.to_csv(os.path.join(
-                        screenshot_dir, 
+                        screenshot_dir,
                         f"update{j}-replay{level_info['level_replay']}-n_edits{level_info['num_edits'][0]}.csv"))
                 else:
                     df.to_csv(os.path.join(
-                        screenshot_dir, 
+                        screenshot_dir,
                         f'update{j}.csv'))
             else:
                 venv.reset_agent()
                 images = venv.get_images()
                 if args.use_editor and level_info:
                     save_images(
-                        images[:args.screenshot_batch_size], 
+                        images[:args.screenshot_batch_size],
                         os.path.join(
-                            screenshot_dir, 
-                            f"update{j}-replay{level_info['level_replay']}-n_edits{level_info['num_edits'][0]}.png"), 
+                            screenshot_dir,
+                            f"update{j}-replay{level_info['level_replay']}-n_edits{level_info['num_edits'][0]}.png"),
                         normalize=True, channels_first=False)
                 else:
                     save_images(
-                        images[:args.screenshot_batch_size], 
+                        images[:args.screenshot_batch_size],
                         os.path.join(screenshot_dir, f'update{j}.png'),
                         normalize=True, channels_first=False)
                 plt.close()
